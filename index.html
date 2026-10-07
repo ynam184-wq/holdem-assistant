@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="텍사스 홀덤 GTO 근사 전략, 혼합 빈도, 팟 오즈와 액션 EV 계산 도구">
+  <meta name="theme-color" content="#0b110f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Holdem Compass">
+  <title>Holdem Compass</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">TEXAS HOLD'EM DECISION LAB</p>
+      <h1>Holdem <span>Compass</span></h1>
+    </div>
+    <div class="top-actions">
+      <button id="installBtn" class="install-btn" type="button">앱 설치</button>
+      <div class="live"><i></i> 실시간 계산</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="kicker">균형 범위와 기대값으로 결정하세요.</p>
+        <h2>카드와 게임 트리를 입력하면<br><em>GTO 빈도부터 EV까지</em></h2>
+        <p class="hero-copy">2~8인 포지션, 유효 스택, 상대 액션과 베팅 크기를 반영해 균형 전략을 근사합니다.</p>
+      </div>
+      <div class="hero-stat">
+        <span>현재 추천</span>
+        <strong id="heroAction">카드를 선택하세요</strong>
+        <small id="heroReason">홀카드 2장을 먼저 입력해 주세요.</small>
+      </div>
+    </section>
+
+    <div class="workspace">
+      <section class="panel input-panel">
+        <div class="panel-title">
+          <div><span>01</span><h3>게임 상황</h3></div>
+          <button id="resetBtn" class="text-btn">초기화</button>
+        </div>
+
+        <div class="field">
+          <label>내 홀카드</label>
+          <div class="card-slots" id="holeSlots">
+            <button class="card-slot empty" data-slot="hole-0">+</button>
+            <button class="card-slot empty" data-slot="hole-1">+</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row"><label>커뮤니티 카드</label><small>선택 사항</small></div>
+          <div class="card-slots small" id="boardSlots">
+            <button class="card-slot empty" data-slot="board-0">+</button>
+            <button class="card-slot empty" data-slot="board-1">+</button>
+            <button class="card-slot empty" data-slot="board-2">+</button>
+            <button class="card-slot empty" data-slot="board-3">+</button>
+            <button class="card-slot empty" data-slot="board-4">+</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="position">내 포지션</label>
+            <select id="position">
+              <option value="UTG">UTG</option>
+              <option value="UTG1">UTG+1</option>
+              <option value="LJ">LJ</option>
+              <option value="HJ">HJ</option>
+              <option value="CO">CO</option>
+              <option value="BTN" selected>BTN</option>
+              <option value="SB">SB</option>
+              <option value="BB">BB</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="players">총 플레이어</label>
+            <select id="players">
+              <option value="2" selected>2인 · 헤즈업</option>
+              <option value="3">3인</option>
+              <option value="4">4인</option>
+              <option value="5">5인</option>
+              <option value="6">6인</option>
+              <option value="7">7인</option>
+              <option value="8">8인</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="gameType">GTO 계산 기준</label>
+            <select id="gameType">
+              <option value="cash" selected>캐시게임 · Chip EV</option>
+              <option value="tournament">토너먼트 · Chip EV</option>
+              <option value="pushfold">숏스택 · Nash Push/Fold</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="rake">레이크</label>
+            <div class="number-wrap"><input id="rake" type="number" min="0" max="10" step="0.5" value="0"><span>%</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row"><label for="villainAction">상대 액션</label><small id="streetLabel">프리플랍</small></div>
+          <select id="villainAction">
+            <option value="folded">모두 폴드 · 내가 선행</option>
+            <option value="limp">림퍼 있음</option>
+            <option value="raise">오픈 레이즈</option>
+            <option value="threebet">3-bet을 맞음</option>
+            <option value="allin">상대 올인</option>
+          </select>
+        </div>
+
+        <div class="grid-3">
+          <div class="field">
+            <label for="pot">현재 팟</label>
+            <div class="number-wrap"><input id="pot" type="number" min="0" step="0.5" value="6"><span>BB</span></div>
+          </div>
+          <div class="field">
+            <label for="callAmount">콜 금액</label>
+            <div class="number-wrap"><input id="callAmount" type="number" min="0" step="0.5" value="2"><span>BB</span></div>
+          </div>
+          <div class="field">
+            <label for="stack">유효 스택</label>
+            <div class="number-wrap"><input id="stack" type="number" min="1" step="1" value="100"><span>BB</span></div>
+          </div>
+        </div>
+
+        <div class="grid-2 compact-row">
+          <div class="field">
+            <label for="raiseSize">내 베팅/레이즈 크기</label>
+            <div class="number-wrap"><input id="raiseSize" type="number" min="0" step="0.5" value="4"><span>BB</span></div>
+          </div>
+          <div class="field stack-zone-box">
+            <label>스택 구간</label>
+            <strong id="stackZone">딥 스택 · 100BB</strong>
+            <small id="stackAdvice">포스트플랍 선택지가 넓습니다</small>
+          </div>
+        </div>
+
+        <button id="calculateBtn" class="primary-btn">승률 분석하기 <span>→</span></button>
+      </section>
+
+      <section class="results">
+        <div class="metric-grid">
+          <article class="metric accent">
+            <span>예상 승률</span>
+            <strong id="equityValue">—</strong>
+            <div class="meter"><i id="equityBar"></i></div>
+            <small id="equityNote">카드를 선택하면 계산합니다</small>
+          </article>
+          <article class="metric">
+            <span>필요 승률 · 팟 오즈</span>
+            <strong id="potOddsValue">25.0%</strong>
+            <div class="meter gray"><i id="oddsBar" style="width:25%"></i></div>
+            <small id="potOddsNote">2BB 콜 / 최종 팟 8BB</small>
+          </article>
+          <article class="metric">
+            <span>기대값 차이</span>
+            <strong id="edgeValue">—</strong>
+            <small id="edgeNote">승률 − 필요 승률</small>
+          </article>
+        </div>
+
+        <article class="panel street-card">
+          <div class="street-head">
+            <div><span id="streetPill" class="street-pill">PREFLOP</span><h3 id="streetTitle">프리플랍 분석</h3></div>
+            <p id="fiveCardRule">홀카드 2장으로 시작합니다</p>
+          </div>
+          <div class="street-grid">
+            <div><span>현재 최종 족보</span><strong id="streetHand">프리플랍</strong></div>
+            <div><span>족보 개선 아웃츠</span><strong id="outsValue">—</strong></div>
+            <div><span id="improveLabel">다음 카드 개선 확률</span><strong id="improveValue">—</strong></div>
+            <div><span>드로우 상태</span><strong id="drawValue">—</strong></div>
+          </div>
+          <p id="streetHint" class="street-hint">커뮤니티 카드 3장을 입력하면 플랍 분석으로 전환됩니다.</p>
+        </article>
+
+        <article class="panel decision-card">
+          <div class="panel-title">
+            <div><span>02</span><h3>추천 액션</h3></div>
+            <span id="confidenceBadge" class="badge">분석 대기</span>
+          </div>
+          <div class="decision-body">
+            <div id="actionIcon" class="action-icon">?</div>
+            <div>
+              <p id="actionLabel" class="action-label">홀카드를 선택해 주세요</p>
+              <h3 id="actionHeadline">상황에 맞는 액션을 계산합니다.</h3>
+              <p id="actionExplanation">추천은 균형 프리플랍 범위, 쇼다운 에퀴티, MDF, 액션 EV와 유효 스택을 함께 반영합니다.</p>
+            </div>
+          </div>
+          <div class="reason-grid">
+            <div><span>핸드 등급</span><strong id="handGrade">—</strong></div>
+            <div><span>포지션 범위</span><strong id="rangeStatus">—</strong></div>
+            <div><span>현재 족보</span><strong id="madeHand">—</strong></div>
+          </div>
+        </article>
+
+        <article class="panel ev-card">
+          <div class="panel-title">
+            <div><span>03</span><h3>GTO 액션 빈도와 기대수익</h3></div>
+            <span id="modelBadge" class="badge subtle">GTO 근사 · Chip EV</span>
+          </div>
+          <div id="mixBar" class="mix-bar" aria-label="추천 혼합 전략"></div>
+          <div id="evTable" class="ev-table">
+            <div class="ev-empty">카드를 선택하면 가능한 액션의 EV를 비교합니다.</div>
+          </div>
+          <div class="assumption-row">
+            <div><span>균형 상대 범위</span><strong id="rangeEstimate">—</strong></div>
+            <div><span>균형 방어 빈도</span><strong id="foldEstimate">—</strong></div>
+            <div><span>시뮬레이션</span><strong id="simulationCount">—</strong></div>
+          </div>
+          <p class="footnote">EV가 가까운 액션은 혼합 빈도로 표시합니다. 빈도는 균형 범위·MDF·블러프 손익분기점에 기반한 GTO 근사치입니다.</p>
+        </article>
+
+        <article class="panel range-card">
+          <div class="panel-title">
+            <div><span>04</span><h3>GTO 프리플랍 레인지 맵</h3></div>
+            <span class="badge subtle">169 핸드 클래스</span>
+          </div>
+          <div id="positionRanges" class="position-ranges"></div>
+          <div class="range-legend"><span class="raise">레이즈</span><span class="call">콜/체크</span><span class="fold">폴드</span><span class="mix">혼합</span></div>
+          <p id="rangeFootnote" class="footnote">현재 포지션·스택·상대 액션에 맞춰 레인지가 갱신됩니다.</p>
+        </article>
+      </section>
+    </div>
+
+    <section class="panel guide">
+      <div class="panel-title"><div><span>05</span><h3>빠른 확률 가이드</h3></div></div>
+      <div class="guide-grid">
+        <div><b>플랍 → 리버</b><strong>아웃츠 × 4</strong><p>남은 두 장에서 완성될 대략적인 확률</p></div>
+        <div><b>턴 → 리버</b><strong>아웃츠 × 2</strong><p>마지막 한 장에서 완성될 대략적인 확률</p></div>
+        <div><b>콜 기준</b><strong>콜 ÷ (팟 + 콜)</strong><p>손익분기점에 필요한 최소 승률</p></div>
+        <div><b>포지션</b><strong>늦을수록 넓게</strong><p>정보가 많아 BTN·CO에서 더 넓게 플레이</p></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="cardPicker">
+    <div class="picker-head">
+      <div><small>카드 선택</small><h3 id="pickerTitle">내 홀카드</h3></div>
+      <button id="closePicker" aria-label="닫기">×</button>
+    </div>
+    <div id="cardGrid" class="card-grid"></div>
+  </dialog>
+
+  <dialog id="installDialog" class="install-dialog">
+    <div class="picker-head">
+      <div><small>모바일 앱 설치</small><h3>홈 화면에 Holdem Compass 추가</h3></div>
+      <button id="closeInstallDialog" aria-label="닫기">×</button>
+    </div>
+    <div id="installGuide" class="install-guide"></div>
+  </dialog>
+
+  <footer>Holdem Compass · 교육 및 연습용 도구이며 수익을 보장하지 않습니다.</footer>
+  <script src="app.js"></script>
+</body>
+</html>
